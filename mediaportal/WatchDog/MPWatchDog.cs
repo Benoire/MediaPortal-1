@@ -33,6 +33,8 @@ using MediaPortal.Configuration;
 using MediaPortal.Profile;
 using WatchDog.Properties;
 using Settings = MediaPortal.Profile.Settings;
+using System.ServiceProcess;
+using System.Security.Principal;
 
 namespace WatchDog
 {
@@ -42,13 +44,14 @@ namespace WatchDog
 
     private const string Default4To3Skin = "Default";
     private const string Default16To9Skin = "Titan";
+    private static string[] logNames = { "Application", "System" };
 
     #endregion
 
     #region Variables
 
     private readonly string _tempDir = "";
-    private string _zipFile = "";
+    public static string zipFile = "";
     private string _tempConfig;
     private bool _autoMode;
     private bool _watchdog;
@@ -59,6 +62,8 @@ namespace WatchDog
     private readonly List<string> _knownPids = new List<string>();
     private bool _safeMode;
     private int GraphsCreated { get; set; }
+    private string _watchdogtargetDir = "";
+    private string _watchdogAppDir = "";
 
     #endregion
 
@@ -126,7 +131,7 @@ namespace WatchDog
           process.WaitForExit();
         }
         // ReSharper disable EmptyGeneralCatchClause
-        catch {}
+        catch { }
         // ReSharper restore EmptyGeneralCatchClause
       }
 
@@ -163,9 +168,9 @@ namespace WatchDog
 
     private string GetZipFilename()
     {
-      _zipFile = tbZipFile.Text;
-      return _zipFile
-        .Replace("[date]", DateTime.Now.ToString("dd_MM_yy"))
+      zipFile = tbZipFile.Text;
+      return zipFile
+        .Replace("[date]", DateTime.Now.ToString("yy_MM_dd"))
         .Replace("[time]", DateTime.Now.ToString("HH_mm"));
     }
 
@@ -173,6 +178,14 @@ namespace WatchDog
 
     public MPWatchDog()
     {
+      // Read Watchdog setting from XML files
+      _watchdogAppDir = Config.GetFile(Config.Dir.Config , "watchdog.xml");
+
+      using (Settings xmlreader = new Settings(_watchdogAppDir, false))
+      {
+        _watchdogtargetDir = xmlreader.GetValueAsString("general", "watchdogTargetDir", "");
+      }
+     
       GraphsCreated = 0;
       Thread.CurrentThread.Name = "MPWatchDog";
       InitializeComponent();
@@ -182,13 +195,22 @@ namespace WatchDog
         _tempDir += "\\";
       }
       _tempDir += "MPTemp";
-      _zipFile = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory) +
-                 "\\MediaPortalLogs_[date]__[time].zip";
+      
+      if (_watchdogtargetDir == string.Empty)
+      {
+        zipFile = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory) 
+          + "\\MediaPortal-Logs\\MediaPortalLogs_[date]__[time].zip";
+      }
+      else
+      {
+        zipFile = _watchdogtargetDir + "\\MediaPortalLogs_[date]__[time].zip";
+      }
+      
       if (!ParseCommandLine())
       {
         Application.Exit();
       }
-      tbZipFile.Text = _zipFile;
+      tbZipFile.Text = zipFile;
       if (_autoMode)
       {
         if (!CheckRequirements())
@@ -225,12 +247,12 @@ namespace WatchDog
     private bool ParseCommandLine()
     {
       string[] args = Environment.GetCommandLineArgs();
-      for (int i = 1; i < args.Length;)
+      for (int i = 1; i < args.Length; )
       {
         switch (args[i].ToLowerInvariant())
         {
           case "-zipfile":
-            _zipFile = args[++i];
+            zipFile = args[++i];
             break;
           case "-safe":
             _safeMode = true;
@@ -298,7 +320,7 @@ namespace WatchDog
       if (dr == DialogResult.OK)
       {
         tbZipFile.Text = saveDialog.FileName;
-        _zipFile = tbZipFile.Text;
+        zipFile = tbZipFile.Text;
       }
     }
 
@@ -521,12 +543,201 @@ namespace WatchDog
           {
             PerformPostTestActions();
             string mpExe = Config.GetFolder(Config.Dir.Base) + "\\MediaPortal.exe";
-            var mp = new Process {StartInfo = {FileName = mpExe}};
+            var mp = new Process { StartInfo = { FileName = mpExe } };
             mp.Start();
             Close();
           }
         }
       }
+    }
+
+    private void miStopTvService_Click(object sender, EventArgs e) // Stop TVService
+    {
+      try
+      {
+        StopTVService();
+      }
+      catch (InvalidOperationException)
+      {
+        SetStatus("Could not stop the TVService. Admin rights needed");
+      }
+    }
+        
+    private void miStartTvService_Click(object sender, EventArgs e) // Start TVService
+    {
+      try
+      {
+        StartTVService();
+      }
+      catch (InvalidOperationException)
+      {
+        SetStatus("Could not start the TVService. Admin rights needed");
+      }
+    }
+
+    public void StartTVService() // http://msdn.microsoft.com/en-us/library/yb9w7ytd.aspx
+    {
+      ServiceController TVservice  = new ServiceController();
+      TVservice.ServiceName = "TVService";
+      SetStatus(string.Format("The TVService status is currently set to {0}", 
+                   TVservice.Status.ToString()));
+      if (TVservice.Status == ServiceControllerStatus.Stopped)
+      {
+        // Start the service if the current status is stopped.
+        SetStatus("Starting TVService...");
+         // Start the service, and wait until its status is "Running".
+        TVservice.Start();
+        int _countDown = 50;
+        while (!TVservice.Status.Equals(ServiceControllerStatus.Running) && _countDown > 0)
+          {
+            _countDown--;
+            Thread.Sleep(100);
+            TVservice.Refresh();
+            SetStatus(string.Format("The TVService status is now set to {0}.",
+                               TVservice.Status.ToString()));
+          }
+      }
+    }
+
+    public void StopTVService() //http://msdn.microsoft.com/en-us/library/system.serviceprocess.servicecontroller.stop.aspx 
+    {
+      ServiceController TVService = new ServiceController("TVService");
+      SetStatus(string.Format("The TVService status is currently set to {0}",
+                        TVService.Status.ToString()));
+
+      if ((TVService.Status.Equals(ServiceControllerStatus.Stopped)) ||
+           (TVService.Status.Equals(ServiceControllerStatus.StopPending)))
+      {
+        // Start the service if the current status is stopped.
+
+        //SetStatus("Starting the TVService...");
+        //TVService.Start();
+      }
+      else
+      {
+        // Stop the service if its status is not set to "Stopped".
+
+        SetStatus("Stopping the TVService...");
+        TVService.Stop();
+      }
+
+      // Refresh and display the current service status.
+      int _countDown = 50;
+      while (!TVService.Status.Equals(ServiceControllerStatus.Stopped) && _countDown > 0)
+      {
+        _countDown--;
+        Thread.Sleep(100);
+        TVService.Refresh();
+        SetStatus(string.Format("The TVService status is now set to {0}.",
+                           TVService.Status.ToString()));
+      }
+    }
+    public void ClearMPLog_and_Event()
+    {
+      ClearEventLog();
+      ClearMPLogDir();
+    }
+
+    private void ClearEventLog()
+    {
+      Update();
+      int subActions = logNames.Length;
+      foreach (string strLogName in logNames)
+      {
+        EventLog e = new EventLog(strLogName);
+        try
+        {
+          e.Clear();
+          SetStatus(string.Format("Events Log Cleared"));
+        }
+        catch (Exception) { }
+      }
+      if (subActions == 0)
+      {
+      }
+    }
+    private void ClearDir(string strDir)
+    {
+      string[] files = Directory.GetFiles(strDir);
+      string[] dirs = Directory.GetDirectories(strDir);
+
+      int subActions = files.Length + dirs.Length;
+
+      foreach (string file in files)
+      {
+        if (File.Exists(file))
+        {
+          try
+          {
+            File.Delete(file);
+          }
+          catch (Exception) {}
+        }
+      }
+
+      foreach (string dir in dirs)
+      {
+        if (Directory.Exists(dir))
+        {
+          try
+          {
+            Directory.Delete(dir, true);
+          }
+          catch (Exception) {}
+        }
+      }
+
+      if (subActions == 0)
+      {
+       
+      }
+    }
+
+    private void ClearMPLogDir()
+    {
+      Update();
+      ClearDir(Config.GetFolder(Config.Dir.Log));
+      SetStatus(string.Format("MP Client Log Folder Cleared"));
+    }
+
+    private void miCleanMPCLog_Click(object sender, EventArgs e) // Clean MP client Log Files
+    {
+      ClearMPLogDir();
+    }
+
+    private void miCleanMpClogAndEvent_Click(object sender, EventArgs e) // Clean MP Client Logs and Events miCleanMpClogAndEvent_Click
+    {
+      ClearMPLog_and_Event();
+    }
+
+    private void miCleanMpCEvents_Click(object sender, EventArgs e) // Clean MP Client Events
+    {
+      ClearEventLog();
+    }
+
+    private void menuItem12_Click(object sender, EventArgs e)
+    {
+
+    }
+
+    private void tbZipFile_TextChanged(object sender, EventArgs e)
+    {
+      using (var xmlwriter = new Settings(_watchdogAppDir, false))
+      {
+        xmlwriter.SetValue("general", "watchdogTargetDir", Utils.GetDirectoryName(tbZipFile.Text));
+      }
+    }
+
+    private void btnZipFileReset_Click(object sender, EventArgs e)
+    {
+      zipFile = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory)
+         + "\\MediaPortal-Logs\\MediaPortalLogs_[date]__[time].zip";
+      tbZipFile.Text = zipFile;
+    }
+
+    private void miCleanLogBoth_Click(object sender, EventArgs e)
+    {
+
     }
   }
 }

@@ -20,6 +20,7 @@
 
 using System;
 using System.Windows.Forms;
+using WatchDog;
 
 namespace WatchDog
 {
@@ -32,6 +33,7 @@ namespace WatchDog
       InitializeComponent();
       ticks = cancelDelay;
       lDelay.Text = ticks.ToString() + " second(s)";
+      Information.Text = "The logfiles will be automatically collected and saved to\n" + MPWatchDog.zipFile;
     }
 
     private void timer1_Tick(object sender, EventArgs e)

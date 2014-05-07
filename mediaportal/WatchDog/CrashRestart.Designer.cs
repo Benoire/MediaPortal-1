@@ -32,7 +32,7 @@ namespace WatchDog
       this.label1 = new System.Windows.Forms.Label();
       this.label2 = new System.Windows.Forms.Label();
       this.lDelay = new System.Windows.Forms.Label();
-      this.label3 = new System.Windows.Forms.Label();
+      this.Information = new System.Windows.Forms.Label();
       this.btnCancel = new System.Windows.Forms.Button();
       this.timer1 = new System.Windows.Forms.Timer(this.components);
       this.SuspendLayout();
@@ -42,7 +42,7 @@ namespace WatchDog
       this.label1.AutoSize = true;
       this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
       this.label1.ForeColor = System.Drawing.Color.Red;
-      this.label1.Location = new System.Drawing.Point(13, 13);
+      this.label1.Location = new System.Drawing.Point(75, 13);
       this.label1.Name = "label1";
       this.label1.Size = new System.Drawing.Size(210, 13);
       this.label1.TabIndex = 0;
@@ -51,7 +51,7 @@ namespace WatchDog
       // label2
       // 
       this.label2.AutoSize = true;
-      this.label2.Location = new System.Drawing.Point(16, 39);
+      this.label2.Location = new System.Drawing.Point(97, 39);
       this.label2.Name = "label2";
       this.label2.Size = new System.Drawing.Size(167, 13);
       this.label2.TabIndex = 1;
@@ -64,20 +64,18 @@ namespace WatchDog
       this.lDelay.Name = "lDelay";
       this.lDelay.Size = new System.Drawing.Size(207, 18);
       this.lDelay.TabIndex = 2;
-      this.lDelay.Text = "label3";
       this.lDelay.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
       // 
-      // label3
+      // Information
       // 
-      this.label3.Location = new System.Drawing.Point(16, 99);
-      this.label3.Name = "label3";
-      this.label3.Size = new System.Drawing.Size(207, 30);
-      this.label3.TabIndex = 3;
-      this.label3.Text = "The logfiles will be automatically collected and saved to your desktop";
+      this.Information.Location = new System.Drawing.Point(14, 68);
+      this.Information.Name = "Information";
+      this.Information.Size = new System.Drawing.Size(333, 63);
+      this.Information.TabIndex = 3;
       // 
       // btnCancel
       // 
-      this.btnCancel.Location = new System.Drawing.Point(77, 148);
+      this.btnCancel.Location = new System.Drawing.Point(143, 168);
       this.btnCancel.Name = "btnCancel";
       this.btnCancel.Size = new System.Drawing.Size(75, 23);
       this.btnCancel.TabIndex = 4;
@@ -95,9 +93,9 @@ namespace WatchDog
       // 
       this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
       this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-      this.ClientSize = new System.Drawing.Size(236, 198);
+      this.ClientSize = new System.Drawing.Size(361, 219);
       this.Controls.Add(this.btnCancel);
-      this.Controls.Add(this.label3);
+      this.Controls.Add(this.Information);
       this.Controls.Add(this.lDelay);
       this.Controls.Add(this.label2);
       this.Controls.Add(this.label1);
@@ -118,7 +116,7 @@ namespace WatchDog
     private System.Windows.Forms.Label label1;
     private System.Windows.Forms.Label label2;
     private System.Windows.Forms.Label lDelay;
-    private System.Windows.Forms.Label label3;
+    private System.Windows.Forms.Label Information;
     private System.Windows.Forms.Button btnCancel;
     private System.Windows.Forms.Timer timer1;
   }

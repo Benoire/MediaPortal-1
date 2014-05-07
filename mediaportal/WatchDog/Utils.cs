@@ -43,5 +43,22 @@ namespace WatchDog
         Application.DoEvents();
       }
     }
+
+    public static string GetDirectoryName(string f)
+    {
+      try
+      {
+        int posOfDirSep = f.LastIndexOf("\\");
+        if (posOfDirSep >= 0)
+          return f.Substring(0, posOfDirSep);
+        else return string.Empty;
+      }
+      catch (Exception)
+      {
+        return string.Empty;
+      }
+    }
+
+
   }
 }
